@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "../tflite_importer.h"
+#include <nncase/importer/util.h>
 #include <nncase/ir/ops/bitcast.h>
 #include <nncase/ir/ops/convert.h>
 #include <nncase/ir/ops/gather.h>
@@ -101,29 +102,16 @@ DEFINE_TFLITE_LOWER(GATHER)
     auto batch_dims = options.batch_dims();
     const auto in_type = to_data_type(input.type());
     const auto indices_type = to_data_type(indices.type());
-    auto axis = options.axis();
-    if (axis < 0)
-    {
-        axis = axis + static_cast<int32_t>(in_shape.size());
-    }
+    auto axis = get_positive(options.axis(), in_shape.size());
 
-    input_connector *g_input, *g_indices;
+    input_connector *g_input;
     output_connector *g_output;
     if (batch_dims == 0)
     {
         auto ga = graph_.emplace<gather>(in_type, in_shape, indices_shape, out_shape, axis);
         ga->name(get_tensor(op.outputs(), 0).name()->string_view());
         link_input_tensor(&ga->input(), op.inputs()->Get(0));
-        if (indices_type != dt_int32)
-        {
-            auto ct = graph_.emplace<convert>(indices_type, indices_shape, dt_int32);
-            ga->indices().connect(ct->output());
-            link_input_tensor(&ct->input(), op.inputs()->Get(1));
-        }
-        else
-        {
-            link_input_tensor(&ga->indices(), op.inputs()->Get(1));
-        }
+        convert_to_type(ga->indices(), indices, op.inputs()->Get(1), dt_int32);
         link_output_tensor(op.outputs()->Get(0), &ga->output());
         return;
     }
@@ -132,18 +120,18 @@ DEFINE_TFLITE_LOWER(GATHER)
     auto bc = graph_.emplace<bitcast>(dt_int32, indices_shape, after_bitcast_indices_shape);
 
     gather_nd *ga;
-    if (indices_type != dt_int32)
-    {
-        auto ct = graph_.emplace<convert>(indices_type, indices_shape, dt_int32);
-        g_indices = &ct->input();
-        // indices -> convert -> bitcast
-        bc->input().connect(ct->output());
-    }
-    else
-    {
-        // indices -> bitcast
-        g_indices = &bc->input();
-    }
+    //    if (indices_type != dt_int32)
+    //    {
+    //        auto ct = graph_.emplace<convert>(indices_type, indices_shape, dt_int32);
+    //        g_indices = &ct->input();
+    //        // indices -> convert -> bitcast
+    //        bc->input().connect(ct->output());
+    //    }
+    //    else
+    //    {
+    //        // indices -> bitcast
+    //        g_indices = &bc->input();
+    //    }
 
     if (axis != batch_dims)
     {
@@ -171,9 +159,10 @@ DEFINE_TFLITE_LOWER(GATHER)
         g_output = &ga->output();
     }
 
+    convert_to_type(bc->input(), indices, op.inputs()->Get(1), dt_int32);
     ga->indices().connect(bc->output());
     link_input_tensor(g_input, op.inputs()->Get(0));
-    link_input_tensor(g_indices, op.inputs()->Get(1));
+    // link_input_tensor(g_indices, op.inputs()->Get(1));
     link_output_tensor(op.outputs()->Get(0), g_output);
     ga->name(get_tensor(op.outputs(), 0).name()->string_view());
 }
