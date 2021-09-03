@@ -59,7 +59,7 @@ void onnx_importer::convert_op_Clip(const NodeProto &node)
         max_op->name(op_name + ".max(Clip)");
     }
 
-    auto op = graph_.emplace<clamp>(get_shape(input),
+    auto op = graph_.emplace<ir::clamp>(get_shape(input),
         min_op ? min_op->output().shape() : get_shape(input_min),
         max_op ? max_op->output().shape() : get_shape(input_max));
 

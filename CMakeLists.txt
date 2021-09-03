@@ -33,6 +33,7 @@ option(ENABLE_OPENMP "OpenMP support" ON)
 option(ENABLE_HALIDE "halide kernels support" ON)
 option(BUILD_PYTHON_BINDING "Build python binding" ON)
 option(BUILD_TESTING "Build test programs" OFF)
+option(UNITY_BUILD "Accelerate Build" ON)
 
 if (BUILDING_RUNTIME)
     option(ENABLE_VULKAN_RUNTIME "Enable Vulkan runtime" ON)

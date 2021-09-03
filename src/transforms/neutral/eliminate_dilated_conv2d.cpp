@@ -56,7 +56,7 @@ auto get_pad_crop(conv2d &conv)
     return std::make_pair(new_paddings, new_crops);
 }
 
-auto space_to_batch(conv2d &conv, const xt::svector<padding> &paddings, graph &graph)
+auto space_to_batch_(conv2d &conv, const xt::svector<padding> &paddings, graph &graph)
 {
     auto p = graph.emplace<pad>(dt_float32, conv.input().shape(), paddings, pad_constant, 0.f);
     p->name(conv.name());
@@ -104,7 +104,7 @@ auto space_to_batch(conv2d &conv, const xt::svector<padding> &paddings, graph &g
     return std::make_pair(p, rshape2);
 }
 
-auto batch_to_space(conv2d &conv1, conv2d &conv2, const xt::svector<padding> &crops, graph &graph)
+auto batch_to_space_(conv2d &conv1, conv2d &conv2, const xt::svector<padding> &crops, graph &graph)
 {
     shape_t reshapped_shape;
     // block shape
@@ -183,11 +183,11 @@ void eliminate_dilated_conv2d_transform::process(transform_context &context)
     auto &old_conv = static_cast<conv2d &>(*context.matched_nodes[0]);
 
     auto [paddings, crops] = get_pad_crop(old_conv);
-    auto [p1, rshape1] = space_to_batch(old_conv, paddings, context.graph);
+    auto [p1, rshape1] = space_to_batch_(old_conv, paddings, context.graph);
     auto conv = context.graph.emplace<conv2d>(rshape1->output().shape(), old_conv.weights().shape(), old_conv.groups(),
         padding::zero(), padding::zero(), old_conv.stride_h(), old_conv.stride_w(), 1, 1, old_conv.fused_activation());
     conv->name(old_conv.name());
-    auto p2 = batch_to_space(old_conv, *conv, crops, context.graph);
+    auto p2 = batch_to_space_(old_conv, *conv, crops, context.graph);
     conv->input().connect(rshape1->output());
     conv->weights().connect(weights);
     conv->bias().connect(bias);

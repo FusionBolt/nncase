@@ -30,6 +30,7 @@ using namespace nncase::runtime::k210;
 using namespace nncase::ir::transforms;
 using namespace nncase::ir::transforms::k210;
 
+#undef GET_PRE_PAD
 #define GET_PRE_PAD(reduce)                                                                                \
     auto filter_type = get_filter_type(reduce->reduce_op(), reduce->filter_h(), reduce->stride_h());       \
     auto kpu_pad_h = get_kpu_padding(filter_type, reduce->input().shape()[2]);                             \
